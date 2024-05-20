@@ -1,6 +1,8 @@
 # RGB to Depth Image Converter
 
-This repository contains the code and resources for a web application that converts RGB images to depth images using a pretrained deep learning model. Users can simply open the home page, upload an image, and receive the corresponding depth image.
+This repository contains the code and resources for a web application that converts RGB images to depth images using a pretrained deep learning model. Users can simply open the home page, upload an image, and receive the corresponding depth image.The web application is published on https://husseinhhameed.github.io/RGB2DEPTH/
+
+
 ## Features
 
   ![3D Surface Visualization](https://github.com/Husseinhhameed/RGB2DEPTH/blob/main/Untitled%20video%20-%20Made%20with%20Clipchamp.gif)
@@ -22,10 +24,9 @@ This repository contains the code and resources for a web application that conve
 
 ## Resources
 
-1. https://github.com/jankais3r/RGB-Depthify
-2. https://github.com/FilippoAleotti/mobilePydnet
-3. https://github.com/mattpoggi/pydnet
-4. https://github.com/mattpoggi/pydnet
+1. [RGB-Depthify](https://github.com/jankais3r/RGB-Depthify)
+2. [mobilePydnet](https://github.com/FilippoAleotti/mobilePydnet)
+3. [pydnet](https://github.com/mattpoggi/pydnet)
 
 
 ## Contributing
