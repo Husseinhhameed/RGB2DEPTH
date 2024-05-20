@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html style="font-size: 16px;" lang="en"><head>
+  <style>
+    .drop-area-container {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh; /* Adjust height as needed */
+
+    }
+  
+    #dropArea {
+      /*border: 2px dashed #ccc; /* Add a border to visualize the drop area */
+      width: 100%;
+      padding: 20px; /* Adjust padding as needed */
+      text-align: center;
+      box-shadow: 0 0 15px 5px rgba(0, 0, 255, 0.3); /* Blurred blue shadow */
+
+    }
+  </style>
+  
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="utf-8">
+    <meta name="keywords" content="">
+    <meta name="description" content="">
+    <title>Home</title>
+    <link rel="stylesheet" href="nicepage.css" media="screen">
+<link rel="stylesheet" href="Home.css" media="screen">
+    <script class="u-script" type="text/javascript" src="jquery.js" defer=""></script>
+    <script class="u-script" type="text/javascript" src="nicepage.js" defer=""></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@1.7.4/dist/tf.min.js"></script>
+
+    <meta name="generator" content="Nicepage 6.10.2, nicepage.com">
+    <link id="u-theme-google-font" rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:100,100i,300,300i,400,400i,500,500i,700,700i,900,900i|Open+Sans:300,300i,400,400i,500,500i,600,600i,700,700i,800,800i">
+    
+    <script type="application/ld+json">{
+		"@context": "http://schema.org",
+		"@type": "Organization",
+		"name": "RGB2DEPTH",
+		"logo": "images/logo.png"
+}</script>
+    <meta name="theme-color" content="#478ac9">
+    <meta property="og:title" content="Home">
+    <meta property="og:description" content="">
+    <meta property="og:type" content="website">
+  <meta data-intl-tel-input-cdn-path="intlTelInput/"></head>
+  <body data-path-to-root="./" data-include-products="false" class="u-body u-overlap u-overlap-transparent u-xl-mode" data-lang="en"><header class="u-clearfix u-header u-header" id="sec-cfbb"><div class="u-clearfix u-sheet u-sheet-1">
+        <a href="#" class="u-hover-feature u-image u-logo u-image-1" data-image-width="1097" data-image-height="893" data-animation-name="customAnimationIn" data-animation-duration="1000" data-animation-delay="0">
+          <img src="images/logo.png" class="u-logo-image u-logo-image-1">
+        </a>
+      </div></header>
+    <section class="u-clearfix u-image u-section-1" id="sec-f20e" data-image-width="1000" data-image-height="570">
+      <div class="u-clearfix u-sheet u-valign-middle-lg u-sheet-1">
+        <h2 class="u-text u-text-white u-text-1" data-animation-name="customAnimationIn" data-animation-duration="1000" data-animation-delay="0">
+          <span style="font-weight: 700;"> Enhance Reality</span>
+          <br>
+          <span style="font-size: 2.25rem;"></span>
+          <span style="font-size: 1.5rem;"></span>RGB to Depth Made Easy
+        </h2>
+        <a href="Home.html#sec-9e41" class="u-border-none u-btn u-btn-round u-button-style u-gradient u-hover-feature u-hover-palette-1-light-1 u-none u-radius u-btn-1" data-animation-name="customAnimationIn" data-animation-duration="2000" data-animation-delay="0">Transform </a>
+      </div>
+      
+    </section>
+    <section class="u-black u-clearfix u-section-2" id="sec-9e41">
+      <div class="u-clearfix u-sheet u-sheet-1 drop-area-container">
+        <div id="dropArea">
+          <input type="file" id="imageLoader" accept="image/*" /><br />
+          <p id="welcome">Choose (or drag&drop) a photo you wish to RGB-Depthify.</p>
+          <p id="running" style="display: none;">Running. Please wait.</p>
+          <canvas id="resultCanvas" style="max-width: 50%; max-height: 50%;"></canvas>
+      </div>
+      <script>
+          let dropArea = document.getElementById("dropArea");
+          dropArea.addEventListener("drop", runInference, false);
+          document.getElementById("imageLoader").addEventListener("change", switchDisplay, false);
+          
+          ["dragenter", "dragover", "dragleave", "drop"].forEach((eventName) => {
+              dropArea.addEventListener(eventName, preventDefaults, false);
+          });
+          ["dragenter", "dragover"].forEach((eventName) => {
+              dropArea.addEventListener(eventName, highlight, false);
+          });
+          ["dragleave", "drop"].forEach((eventName) => {
+              dropArea.addEventListener(eventName, unhighlight, false);
+          });
+          
+          function preventDefaults(e) {
+              e.preventDefault();
+              e.stopPropagation();
+          }
+
+          function highlight(e) {
+              dropArea.classList.add("highlight");
+          }
+
+          function unhighlight(e) {
+              dropArea.classList.remove("highlight");
+          }
+          
+          function switchDisplay(e){
+              document.getElementById("welcome").style.display = "none";
+              document.getElementById("running").style.display = "block";
+              setTimeout(function () {
+                  runInference(e);
+              }, 350);
+              
+          }
+
+          let dropName;
+
+          if (!("createImageBitmap" in window)) {
+              window.createImageBitmap = async function (data) {
+                  return new Promise((resolve, reject) => {
+                      let dataURL;
+                      const canvas = document.createElement("canvas");
+                      const ctx = canvas.getContext("2d");
+                      canvas.width = data.width;
+                      canvas.height = data.height;
+                      ctx.putImageData(data, 0, 0);
+                      dataURL = canvas.toDataURL();
+
+                      const img = document.createElement("img");
+                      img.addEventListener("load", function () {
+                          resolve(this);
+                      });
+                      img.src = dataURL;
+                  });
+              };
+          }
+
+          class Pydnet {
+              async init(urls) {
+                  const MODEL = "https://raw.githubusercontent.com/FilippoAleotti/demo_live/master/assets/js/pydnet.json";
+                  this.model = await tf.loadGraphModel(MODEL);
+                  this.height = 384;
+                  this.width = 640;
+                  return this;
+              }
+
+              async predict(img) {
+                  const [data, resizeInputData] = tf.tidy(() => {
+                      var raw_input = tf.browser.fromPixels(img);
+                      var upsampledraw_input = tf.image.resizeBilinear(raw_input, [this.height, this.width]);
+                      var preprocessedInput = upsampledraw_input.expandDims();
+                      preprocessedInput = tf.div(preprocessedInput, 255.0);
+                      var result = this.model.predict(preprocessedInput);
+                      result = this.prepareOutput(result, img.width, img.height);
+                      upsampledraw_input = tf.cast(upsampledraw_input, "int32");
+                      const data = result.dataSync();
+                      const resizeInputData = upsampledraw_input.dataSync();
+                      return [data, resizeInputData];
+                  });
+                  await tf.nextFrame();
+                  return [data, resizeInputData];
+              }
+
+              prepareOutput(tensor, width, height) {
+                  return tf.tidy(() => {
+                      tensor = tf.relu(tensor);
+                      tensor = tf.squeeze(tensor);
+                      var min_value = tf.min(tensor);
+                      var max_value = tf.max(tensor);
+                      tensor = tf.div(tf.sub(tensor, min_value), tf.sub(max_value, min_value));
+                      tensor = tf.mul(tensor, 255.0);
+                      tensor = tf.cast(tensor, "int32");
+                      return tensor;
+                  });
+              }
+          }
+
+          async function runInference(e) {
+              document.getElementById("welcome").style.display = "none";
+              document.getElementById("running").style.display = "block";
+
+              var fr = new FileReader();
+              fr.onload = function () {
+                  var img = new Image();
+                  img.onload = function () {
+                      display_result(img);
+                  };
+                  img.src = fr.result;
+              };
+              try {
+                  fr.readAsDataURL(e.target.files[0]);
+              } catch (x) {
+                  dropName = e.dataTransfer.files[0].name;
+                  fr.readAsDataURL(e.dataTransfer.files[0]);
+              }
+          }
+
+          async function run_inference(img) {
+              var outputs = await model.predict(img);
+              return outputs;
+          }
+
+          async function display_result(img) {
+              var results = await run_inference(img);
+
+              var canvas = document.getElementById("resultCanvas");
+              var ctx = canvas.getContext("2d");
+              canvas.width = img.width * 2;
+              canvas.height = img.height;
+              ctx.drawImage(img, 0, 0);
+
+              var buffer = new Uint8ClampedArray(model.width * model.height * 4);
+              var i = 0;
+              for (var y = 0; y < model.height; y++) {
+                  for (var x = 0; x < model.width; x++) {
+                      var index = y * model.width + x;
+                      var depth = results[0][index];
+                      buffer[i] = results[0][index];
+                      buffer[i + 1] = results[0][index];
+                      buffer[i + 2] = results[0][index];
+                      buffer[i + 3] = 255.0;
+                      i += 4;
+                  }
+              }
+
+              const imageData = new ImageData(buffer, model.width, model.height);
+              createImageBitmap(imageData).then((renderer) => ctx.drawImage(renderer, img.width, 0, img.width, img.height));
+
+              document.getElementById("welcome").style.display = "block";
+              document.getElementById("running").style.display = "none";
+
+              setTimeout(function () {
+                  try {
+                      var ulName = document.getElementById("imageLoader").files.item(0).name;
+                      var dlName = ulName.substr(0, ulName.lastIndexOf(".")) + "_RGBD.jpg";
+                  } catch (x) {
+                      var dlName = dropName.substr(0, dropName.lastIndexOf(".")) + "_RGBD.jpg";
+                  }
+
+                  var dlLink = document.createElement("a");
+                  dlLink.download = dlName;
+                  dlLink.href = canvas.toDataURL("image/jpeg");
+                  document.body.appendChild(dlLink);
+                  dlLink.click();
+                  document.body.removeChild(dlLink);
+              }, 350);
+          }
+
+          async function setupPydnet() {
+              model = await new Pydnet().init();
+          }
+
+          setupPydnet();
+      </script>
+
+      </div>
+    </section>
+    <section class="u-black u-clearfix u-section-3" id="sec-e6a8">
+      <div class="u-clearfix u-sheet u-sheet-1">
+        <div class="u-expanded-width u-list u-list-1">
+          <div class="u-repeater u-repeater-1">
+            <div class="u-container-style u-custom-item u-hover-feature u-image u-list-item u-repeater-item u-image-1" data-image-width="854" data-image-height="1280">
+              <div class="u-container-layout u-similar-container u-container-layout-1"></div>
+            </div>
+            <div class="u-container-style u-custom-item u-hover-feature u-image u-list-item u-repeater-item u-image-2" data-image-width="1279" data-image-height="853">
+              <div class="u-container-layout u-similar-container u-container-layout-2"></div>
+            </div>
+            <div class="u-container-style u-custom-item u-hover-feature u-image u-list-item u-repeater-item u-image-3" data-image-width="1273" data-image-height="853">
+              <div class="u-container-layout u-similar-container u-container-layout-3"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      
+      
+    </section>
+    
+    
+    
+    <footer class="u-align-center u-clearfix u-footer u-image u-footer" id="sec-cf00" data-image-width="1600" data-image-height="543"><div class="u-clearfix u-sheet u-sheet-1"></div></footer>
+  
+</body></html>
